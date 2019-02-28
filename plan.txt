@@ -1,0 +1,18 @@
+Done:
+Sleeping			 				Toggl
+Activities + Mood					Daylio
+Location							Google Location
+Computer							Rescuetime
+Food								Myfitnesspal
+Exercise							Myfitnesspal
+Podcasts							Zenobase
+Texts								Google voice texts
+Finance data						Mintapi
+Songs								Zenobase
+
+
+Processing:
+Commute roads						Google Maps API Road Snap
+Location destinations				Google Maps API Geocoding
+Weather								Darksky
+Song popularity, genres				Spotify
