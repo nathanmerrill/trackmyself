@@ -39,3 +39,4 @@ pip-delete-this-directory.txt
 *.csv
 session/
 apiKeys.py
+*.db
