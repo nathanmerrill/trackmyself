@@ -12,7 +12,7 @@ start = end - datetime.timedelta(days=30)
 
 # data_sources = ['toggl','daylio','googleLocation','rescueTime','myFitnessPalFood','myFitnessPalExercise','zenobase','hangouts','mint']
 
-data_sources = ['zenobase']
+data_sources = ['daylio']
 
 tables = []
 for data_source in data_sources:
@@ -22,6 +22,8 @@ for data_source in data_sources:
 	data = getattr(sys.modules[libName], "call")(keys, start, end)
 	storage.store(data)
 
+    
+    
 
 # Datasources rules:
 # File sources take a filename

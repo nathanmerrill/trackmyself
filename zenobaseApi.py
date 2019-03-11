@@ -21,37 +21,28 @@ def auth(request):
 
 def trimDurations(items):
     last = None
-    for item in items:
-        if 'listenDuration' not in item:
-            item['listenDuration'] = item['duration']
-        if last is None:
-            last = item
-            continue
-        maximumDuration = item['timestamp'] - last['timestamp']
-        if item['listenDuration'] > maximumDuration:
-            item['listenDuration'] = maximumDuration
-        yield item        
+    for item in sorted(items, key=lambda a: a['timestamp']):
+        if last is not None:
+            maximumDuration = item['timestamp'] - last['timestamp']
+            if last['listenDuration'] > maximumDuration:
+                last['listenDuration'] = maximumDuration
+            yield last
+        last = item
+    yield last
 
 def mergeItems(items):
     for sequence in findSequences(items):
-        last = None
-        for current in sequence:
-            if last is None:
-                last = current                
-                continue
+        item = min(sequence, key=lambda a: a['timestamp'])
+        startTime = min(a['timestamp'] for a in sequence)
+        endTime = max(a['timestamp'] for a in sequence)
+        minPercentage = min(a['percentage'] for a in sequence)
+        maxPercentage = max(a['percentage'] for a in sequence)
+        listenDuration = min((endTime-startTime), (maxPercentage-minPercentage)/100*item['duration'])
+        if listenDuration.total_seconds() < 20:
+            listenDuration = item['duration']
             
-            listenDuration = (current['timestamp'] - last['timestamp']).total_seconds()
-            
-            if current['action'] == last['action'] and listenDuration > last['duration'].total_seconds()*.9:
-                yield last
-                last = current
-                continue
-            
-            if current['action'] == 'stop':
-                last['listenDuration'] = current['duration']*(current['percentage'] - last['percentage'])
-            else :
-                del last['listenDuration']
-        yield last
+        item['listenDuration'] = listenDuration
+        yield item
 
 
 def formatData(item):
@@ -66,29 +57,38 @@ def formatData(item):
         'action': action,
         'isPodcast': app == 'com.bambuna.podcastaddict',
         'timestamp': datetime.datetime.fromisoformat(item['timestamp'][0][:-1]),
-        'duration': datetime.timedelta(seconds=int(item['duration'])),
+        'duration': datetime.timedelta(seconds=int(item['duration'])/1000),
         'percentage': float(item['percentage']),
     }
     
+def sameTrack(track1, track2):
+    if track1['title'] == track2['title']:
+        return True
+    if track1['isPodcast'] and track1['artist'] == track2['artist'] and track1['duration'] == track2['duration']:
+        return True
+    return False
+    
 def findSequences(items):
-    currentTrack = None
-    next = []
-    for item in items:
-        if item is None:
-            continue
-        if currentTrack != item['title']:
-            if currentTrack is not None:
-                yield next
-                next = []
-            currentTrack = item['title']
-            next.append(item)
-            continue
-    if currentTrack is not None:
-        yield next
+    items = [i for i in items if i is not None]
+    if not items:
+        return
+    items = sorted(items, key=lambda a: a['timestamp'])
+    podcasts = [i for i in items if i['isPodcast']]
+    music = [i for i in items if not i['isPodcast']]
+    for set in (podcasts, music):        
+        currentTrack = None
+        sequence = []
+        for item in set:
+            if currentTrack and not sameTrack(currentTrack, item):
+                yield sequence
+                sequence = []
+            currentTrack = item
+            sequence.append(item)
+        if sequence:
+            yield sequence
         
 
 def call(request, start, end):
-    
     access_token = auth(request)
     url = 'https://api.zenobase.com/buckets/'+request['buckets']['podcasts']+"/"
     params = {
@@ -96,7 +96,6 @@ def call(request, start, end):
     }
     headers = {'Authorization': 'Bearer '+access_token}
     response = requests.get(url, params=params, headers=headers)
-    print(response.status_code)
     items = map(formatData, json.loads(response.text)['events'])
     for item in trimDurations(mergeItems(items)):
         track = Track(
@@ -107,6 +106,7 @@ def call(request, start, end):
             duration=item['duration'].total_seconds(),
         )
         yield track
+        
         yield ListenHistory(
             timestamp=item['timestamp'],
             listen_duration=item['listenDuration'].total_seconds(),

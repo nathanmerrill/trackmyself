@@ -6,8 +6,8 @@ from sqlalchemy.orm import sessionmaker
 engine = create_engine('sqlite:///sample.db')
 Session = sessionmaker(bind=engine)
 
-# models.Base.metadata.drop_all(engine)
-# models.Base.metadata.create_all(engine)
+models.Base.metadata.drop_all(engine)
+models.Base.metadata.create_all(engine)
 
 
 def store(items):
@@ -16,7 +16,6 @@ def store(items):
     for model in items:
         if hasattr(model, 'unique'):
             unique_values = tuple(getattr(model, attr) for attr in model.unique)
-            
             if unique_values in cache:
                 model.id = cache[unique_values]
                 continue

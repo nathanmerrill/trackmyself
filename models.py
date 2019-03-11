@@ -39,7 +39,8 @@ class Activity(Base, Name):
     pass
 
 class ActivityItem(Base, Name): #Different types of an activity (aka, which board game)
-    activity = Column(Integer, ForeignKey('activity.id'), nullable=False, index=True)
+    activity_id = Column(Integer, ForeignKey('activity.id'), nullable=False, index=True)
+    activity = relationship("Activity")
 
 class Location(Base):
     name = Column(String, index=True)
@@ -82,9 +83,21 @@ class Track(Base):
     name = Column(String, nullable=False, index=True)
     artist = Column(String, nullable=False, index=True)
     album = Column(String, nullable=False, index=True) 
-    is_podcast = Column(Boolean, nullable=False, index=True)
+    genre = Column(String, nullable=False, index=True)
     duration = Column(Integer, nullable=False, index=True)
+    spotify_id = Column(String, index=True)
+    danceability = Column(Float, index=True)
+    energy = Column(Float, index=True)
+    loudness = Column(Float, index=True)
+    speechiness = Column(Float, index=True)
+    instrumentalness = Column(Float, index=True)
+    valence = Column(Float, index=True)   
+    tempo = Column(Float, index=True)
+    key = Column(Integer, index=True)
+    mode = Column(Integer, index=True)
+    time_signature = Column(Integer, index=True)
 
+    
 class ElectronicActivity(Base, Name):  #The app I'm using, or the domain I've hit
     productivity_score = Column(Integer, nullable=False, index=True)
     category = Column(String, index=True)
@@ -111,44 +124,59 @@ class ListenHistory(Base, Time):
     listen_duration = Column(Integer, nullable=False, index=True)
     
 class SleepHistory(Base, Time):
+    unique = ['ref_id']
+    ref_id = Column(Integer, nullable=False, index=True)
     duration = Column(Integer, nullable=False, index=True)
-    awake_time = Column(DateTime, nullable=False, index=True)
+    stop = Column(DateTime, nullable=False, index=True)
+    isNap = Column(Boolean, nullable=False, index=True)
     
 class ElectronicActivityHistory(Base, Time):
-    activity = Column(Integer, ForeignKey('electronicactivity.id'), nullable=False)
+    activity_id = Column(Integer, ForeignKey('electronicactivity.id'), nullable=False)
+    activity = relationship("ElectronicActivity")
     duration = Column(Integer, nullable=False, index=True)
     page_title = Column(String, nullable=False, index=True)
     url = Column(String, index=True)
     
 class FoodHistory(Base, Time):
-    food = Column(Integer, ForeignKey('food.id'), nullable=False, index=True)
-    meal = Column(Integer, ForeignKey('meal.id'), nullable=False, index=True)
+    food_id = Column(Integer, ForeignKey('food.id'), nullable=False, index=True)
+    activity = relationship("Food")
+    meal_id = Column(Integer, ForeignKey('meal.id'), nullable=False, index=True)
+    activity = relationship("Meal")
     servings = Column(DECIMAL, nullable=False, index=True)
 
 class ExerciseHistory(Base, Time):
-    exercise = Column(Integer, ForeignKey('exercise.id'), nullable=False, index=True)
+    exercise_id = Column(Integer, ForeignKey('exercise.id'), nullable=False, index=True)
+    exercise = relationship("Exercise")
     duration = Column(Integer, nullable=False, index=True)
 
 class TransactionHistory(Base, Time):
-    transaction_id = Column(String, nullable=False, index=True)
+    unique = ['ref_id']
+    ref_id = Column(String, nullable=False, index=True, unique=True)
     amount = Column(DECIMAL, nullable=False, index=True)
     merchant_id = Column(Integer, ForeignKey('merchant.id'), nullable=False)
-    bankaccount_id = Column(Integer, ForeignKey('bankaccount.id'), nullable=False)
-    transactioncategory_id = Column(Integer, ForeignKey('transactioncategory.id'), nullable=False)
+    merchant = relationship("Merchant")
+    bank_account_id = Column(Integer, ForeignKey('bankaccount.id'), nullable=False)
+    bank_account = relationship("BankAccount")
+    transaction_category_id = Column(Integer, ForeignKey('transactioncategory.id'), nullable=False)
+    transaction_category = relationship("TransactionCategory")
     type = Column(Enum(TransactionType), nullable=False, index=True)
     note = Column(Text, index=True)
     
 class ChatHistory(Base, Time):
+    unique = ['event_id']
     event_id = Column(String, nullable=False, index=True) 
     message = Column(Text, nullable=False, index=True)
     sender = Column(Enum(MessageSource), nullable=False, index=True)
 
 class MoodHistory(Base, Time):
-    mood = Column(Integer, ForeignKey('mood.id'), nullable=False, index=True)
+    mood_id = Column(Integer, ForeignKey('mood.id'), nullable=False, index=True)
+    mood = relationship("Mood")
 
 class ActivityHistory(Base, Time):
-    activity = Column(Integer, ForeignKey('activity.id'), nullable=False, index=True)
+    activity_id = Column(Integer, ForeignKey('activity.id'), nullable=False, index=True)
+    activity = relationship("Activity")
     
 class LocationHistory(Base, Time):
-    location = Column(Integer, nullable=False, index=True)
+    location_id = Column(Integer, ForeignKey('location.id'), nullable=False, index=True)
+    location = relationship("Location")
     velocity = Column(Integer, index=True)
