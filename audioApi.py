@@ -1,6 +1,8 @@
 import datetime
-import requests
-import json
+import csv
+import ijson
+import itertools
+import pylast
 from models import ListenHistory, Track
 
 access_token = None
@@ -44,10 +46,23 @@ def mergeItems(items):
         item['listenDuration'] = listenDuration
         yield item
 
+def formatPhoneData(item):
+    action, app, album, artist, title, duration, progress, timestamp = tuple(item)
+    if app not in ('com.bambuna.podcastaddict'):
+        return None
+    return {
+        'title': title,
+        'album': album,
+        'artist': artist,
+        'action': action,
+        'isPodcast': True,
+        'timestamp': datetime.datetime.fromisoformat(timestamp),
+        'duration': datetime.timedelta(seconds=int(duration)/1000),
+        'percentage': float(progress)/float(duration),
+    }
 
-def formatData(item):
-    title, album, artist = tuple(item['note'])        
-    action, app = tuple(item['tag'])
+def formatZenobaseData(item):
+    duration, title, album, artist, percentage, action, app, timestamp = tuple(item)
     if app not in ('com.bambuna.podcastaddict', 'com.spotify.music'):
         return None
     return {
@@ -56,9 +71,20 @@ def formatData(item):
         'artist': artist,
         'action': action,
         'isPodcast': app == 'com.bambuna.podcastaddict',
-        'timestamp': datetime.datetime.fromisoformat(item['timestamp'][0][:-1]),
-        'duration': datetime.timedelta(seconds=int(item['duration'])/1000),
-        'percentage': float(item['percentage']),
+        'timestamp': datetime.datetime.fromisoformat(timestamp[:-1]),
+        'duration': datetime.timedelta(seconds=int(duration)/1000),
+        'percentage': float(percentage),
+    }
+def formatLastFmTrack(track):
+    return {
+        'title': track.track.title,
+        'album': track.album,
+        'artist': track.track.artist.name,
+        'action': 'start',
+        'isPodcast': False,
+        'timestamp': datetime.datetime.fromtimestamp(int(track.timestamp)),
+        'duration': datetime.timedelta(seconds=-1),
+        'percentage': 1
     }
     
 def sameTrack(track1, track2):
@@ -86,17 +112,21 @@ def findSequences(items):
             sequence.append(item)
         if sequence:
             yield sequence
-        
-
-def call(request, start, end):
-    access_token = auth(request)
-    url = 'https://api.zenobase.com/buckets/'+request['buckets']['podcasts']+"/"
-    params = {
-        'constraint_expression':'timestamp:['+start.isoformat()+'..'+end.isoformat()+']'
-    }
-    headers = {'Authorization': 'Bearer '+access_token}
-    response = requests.get(url, params=params, headers=headers)
-    items = map(formatData, json.loads(response.text)['events'])
+            
+def callLastFm(credentials, start, end):
+    network = pylast.LastFMNetwork(api_key=credentials['apikey'], api_secret=credentials['secret'])
+    user = network.get_user(credentials['username'])
+    tracks = user.get_recent_tracks(limit=None, time_from=start, time_to=end)
+    return map(formatLastFmTrack, tracks)
+    
+def call(sources, start, end):
+    csvfile = open(sources['zenobase'], 'r', encoding="utf8")
+    items = map(formatZenobaseData, csv.reader(csvfile, delimiter=',', quotechar='"'))
+    # for phoneFile in sources['phone']:
+        # audiofile = open(phoneFile, 'r'):
+        # items = itertools.chain(items,map(formatPhoneData, ijson.items(audiofile)))
+    items = itertools.chain(items, callLastFm(sources['lastfm'], start, end))
+    
     for item in trimDurations(mergeItems(items)):
         track = Track(
             name=item['title'],
@@ -109,6 +139,6 @@ def call(request, start, end):
         
         yield ListenHistory(
             timestamp=item['timestamp'],
-            listen_duration=item['listenDuration'].total_seconds(),
+            duration=item['listenDuration'].total_seconds(),
             track_id=track.id,
         )

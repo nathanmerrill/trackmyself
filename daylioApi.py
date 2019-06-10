@@ -6,9 +6,14 @@ from models import Mood, MoodHistory, Activity, ActivityHistory, ActivityItem
 mood_ratings = {
     'excited': 5,
     'productive': 4,
-    'fine':    3,
+    'fine': 3,
     'bored': 2,
     'awful': 1,
+}
+
+activity_map = {
+    'game': 'board games',
+    'movie': 'tv',
 }
 
 def call(filename, start, end):
@@ -31,16 +36,20 @@ def call(filename, start, end):
                 timestamp=time,
                 mood_id=moods[line[4]].id
             )
-            parts = re.compile('([a-zA-Z]*\:)').split(line[6])
+            
             activities = dict()
-            for item, value in zip(parts, parts[1:]):
-                if not item.endswith(':'):
+            for entry in line[6].split(','):
+                entry = entry.strip()
+                if len(entry) == 0:
                     continue
-                item = item[:-1]
+                item, value = tuple(entry.split(':'))
+                item = formatActivity(item)
                 if item not in activities:
                     activities[item] = []
                 activities[item].append(value.strip())
+                
             for activity in line[5].split(' | '):
+                activity = formatActivity(activity.lower())
                 if activity not in activities:
                     activities[activity] = []
             
@@ -50,4 +59,11 @@ def call(filename, start, end):
                 yield ActivityHistory(timestamp=time, activity_id=activity.id)
                 for item in items:
                     yield ActivityItem(name=item, activity_id=activity.id)
-            
+                    
+                    
+                    
+def formatActivity(activity):
+    activity = activity.lower().strip()
+    if activity in activity_map:
+        activity = activity_map[activity]
+    return activity

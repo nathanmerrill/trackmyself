@@ -18,10 +18,6 @@ class Time(object):
 class Name(object):
     unique = ['name']
     name = Column(String, nullable=False, unique=True, index=True)
-
-class MessageSource(enum.IntEnum):
-    Self = 1
-    Another = 2
     
 class TransactionType(enum.IntEnum):
     Transfer = 1
@@ -43,9 +39,10 @@ class ActivityItem(Base, Name): #Different types of an activity (aka, which boar
     activity = relationship("Activity")
 
 class Location(Base):
+    unique = ['lat', 'long']
     name = Column(String, index=True)
-    lat = Column(Integer, nullable=False)
-    long = Column(Integer, nullable=False)
+    lat = Column(Integer, index=True, nullable=False)
+    long = Column(Integer, index=True,  nullable=False)
 
 class Person(Base, Name):
     pass
@@ -53,27 +50,19 @@ class Person(Base, Name):
 class Merchant(Base, Name):
     pass
 
-class Bank(Base, Name):
-    alias = Column(String,  nullable=False)
-
 class BankAccount(Base, Name):
-    bank = Column(Integer, ForeignKey('bank.id'), nullable=False)
-    alias = Column(String, nullable=False)
-
-class TransactionCategory(Base, Name):
-    pass    
+    unique = ['bank', 'name']
+    bank = Column(String, nullable=False)
 
 class Exercise(Base, Name):
     pass
-    
-class Food(Base, Name):
-    pass
 
-class Nutrient(Base, Name):
+class Food(Base, Name):
+    unique = ['name', 'unit']
     unit = Column(String, nullable=False)
     pass
 
-class Meal(Base, Name):
+class Nutrient(Base, Name):
     pass
     
 class Track(Base):
@@ -83,8 +72,9 @@ class Track(Base):
     name = Column(String, nullable=False, index=True)
     artist = Column(String, nullable=False, index=True)
     album = Column(String, nullable=False, index=True) 
-    genre = Column(String, nullable=False, index=True)
+    is_podcast = Column(Boolean, nullable=False,index=True)
     duration = Column(Integer, nullable=False, index=True)
+    genre = Column(String, index=True)
     spotify_id = Column(String, index=True)
     danceability = Column(Float, index=True)
     energy = Column(Float, index=True)
@@ -102,26 +92,25 @@ class ElectronicActivity(Base, Name):  #The app I'm using, or the domain I've hi
     productivity_score = Column(Integer, nullable=False, index=True)
     category = Column(String, index=True)
 
-
-
 class FoodNutrient(Base): #in a single serving
-    food = Column(Integer, ForeignKey('food.id'), nullable=False)
-    nutrient = Column(Integer, ForeignKey('nutrient.id'), nullable=False)
+    unique = ['food_id', 'nutrient_id']
+    food_id = Column(Integer, ForeignKey('food.id'), nullable=False)
+    food = relationship("Food")
+    nutrient_id = Column(Integer, ForeignKey('nutrient.id'), nullable=False)
+    nutrient = relationship("Nutrient")
+    quantity = Column(Float, index=True)
 
-class PersonAlias(Base):
-    person = Column(Integer, ForeignKey('person.id'), nullable=False)
-    alias = Column(String, nullable=False, unique=True, index=True)
-
-class ChatParticipant(Base):
-    chat = Column(Integer, ForeignKey('chathistory.id'), nullable=False)
-    person = Column(Integer, ForeignKey('person.id'), nullable=False)
+class ChatReciept(Base):
+    unique = ['chat_id', 'reciever_id']
+    chat_id = Column(Integer, ForeignKey('chathistory.id'), nullable=False)
+    reciever_id = Column(Integer, ForeignKey('person.id'), nullable=False)
     
 
 #Time based models
 class ListenHistory(Base, Time):
     track_id = Column(Integer, ForeignKey('track.id'), nullable=False)
     track = relationship("Track")
-    listen_duration = Column(Integer, nullable=False, index=True)
+    duration = Column(Integer, nullable=False, index=True)
     
 class SleepHistory(Base, Time):
     unique = ['ref_id']
@@ -134,15 +123,13 @@ class ElectronicActivityHistory(Base, Time):
     activity_id = Column(Integer, ForeignKey('electronicactivity.id'), nullable=False)
     activity = relationship("ElectronicActivity")
     duration = Column(Integer, nullable=False, index=True)
-    page_title = Column(String, nullable=False, index=True)
-    url = Column(String, index=True)
+    page_title = Column(String, index=True)
     
 class FoodHistory(Base, Time):
     food_id = Column(Integer, ForeignKey('food.id'), nullable=False, index=True)
-    activity = relationship("Food")
-    meal_id = Column(Integer, ForeignKey('meal.id'), nullable=False, index=True)
-    activity = relationship("Meal")
-    servings = Column(DECIMAL, nullable=False, index=True)
+    food = relationship("Food")
+    meal = Column(String, nullable=False, index=True)
+    servings = Column(Float, nullable=False, index=True)
 
 class ExerciseHistory(Base, Time):
     exercise_id = Column(Integer, ForeignKey('exercise.id'), nullable=False, index=True)
@@ -152,21 +139,21 @@ class ExerciseHistory(Base, Time):
 class TransactionHistory(Base, Time):
     unique = ['ref_id']
     ref_id = Column(String, nullable=False, index=True, unique=True)
-    amount = Column(DECIMAL, nullable=False, index=True)
+    amount = Column(Integer, nullable=False, index=True)
     merchant_id = Column(Integer, ForeignKey('merchant.id'), nullable=False)
     merchant = relationship("Merchant")
     bank_account_id = Column(Integer, ForeignKey('bankaccount.id'), nullable=False)
     bank_account = relationship("BankAccount")
-    transaction_category_id = Column(Integer, ForeignKey('transactioncategory.id'), nullable=False)
-    transaction_category = relationship("TransactionCategory")
+    category = Column(String, nullable=False, index=True)
     type = Column(Enum(TransactionType), nullable=False, index=True)
     note = Column(Text, index=True)
     
 class ChatHistory(Base, Time):
     unique = ['event_id']
-    event_id = Column(String, nullable=False, index=True) 
+    event_id = Column(String, nullable=False, index=True)
+    sender_id = Column(Integer, ForeignKey('person.id'), nullable=False)
+    sender = relationship("Person")
     message = Column(Text, nullable=False, index=True)
-    sender = Column(Enum(MessageSource), nullable=False, index=True)
 
 class MoodHistory(Base, Time):
     mood_id = Column(Integer, ForeignKey('mood.id'), nullable=False, index=True)
@@ -179,4 +166,5 @@ class ActivityHistory(Base, Time):
 class LocationHistory(Base, Time):
     location_id = Column(Integer, ForeignKey('location.id'), nullable=False, index=True)
     location = relationship("Location")
-    velocity = Column(Integer, index=True)
+    velocity = Column(Integer, nullable=False, index=True)
+    duration = Column(Integer, nullable=False, index=True)
