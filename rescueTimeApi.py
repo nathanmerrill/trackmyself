@@ -20,14 +20,12 @@ def call(request, start, end):
     items = response['rows']
     headers = dict((x, i) for i, x in enumerate(response['row_headers']))
     for item in items:
-        activity = ElectronicActivity(name=item[headers['Activity']], productivity_score=int(item[headers['Productivity']]), category=item[headers['Category']])
-        yield activity
         page_title = item[headers['Document']]
         if page_title == "No Details":
             page_title = None
         yield ElectronicActivityHistory(
             timestamp=datetime.datetime.fromisoformat(item[headers['Date']]),
-            activity_id=activity.id, 
+            activity=ElectronicActivity(name=item[headers['Activity']], productivity_score=int(item[headers['Productivity']]), category=item[headers['Category']]), 
             duration=int(item[headers['Time Spent (seconds)']]), 
             page_title=page_title
         )

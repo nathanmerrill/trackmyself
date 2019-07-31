@@ -37,20 +37,16 @@ def call(request, start, end):
             type = TransactionType.Debit
         elif not type:
             type = TransactionType.Other
-            
-        merchant_model = Merchant(name=item['merchant'])
-        yield merchant_model
-        bank_model = BankAccount(
-            bank = item['fi'],
-            name = item['account'],
-        )
-        yield bank_model
+        
         formatted_amount = item['amount'].replace('$','').replace(',','')
         yield TransactionHistory(
             ref_id=item['id'],
             amount=round(float(formatted_amount)*100),
-            merchant_id=merchant_model.id,
-            bank_account_id = bank_model.id,
+            merchant=Merchant(name=item['merchant']),
+            bank_account = BankAccount(
+                bank = item['fi'],
+                name = item['account'],
+            ),
             timestamp=date,
             category=item['mcategory'],
             type=type,

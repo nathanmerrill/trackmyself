@@ -49,16 +49,15 @@ def call(filename, start, end):
                 activities[item].append(value.strip())
                 
             for activity in line[5].split(' | '):
-                activity = formatActivity(activity.lower())
-                if activity not in activities:
-                    activities[activity] = []
+                activityName = formatActivity(activity.lower())
+                if activityName not in activities:
+                    activities[activityName] = []
             
             for activity, items in activities.items():
-                activity = Activity(name=activity)
-                yield activity
-                yield ActivityHistory(timestamp=time, activity_id=activity.id)
+                activity = Activity(name=activityName)
+                yield ActivityHistory(timestamp=time, activity=activity)
                 for item in items:
-                    yield ActivityItem(name=item, activity_id=activity.id)
+                    yield ActivityItem(name=item, activity=activity)
                     
                     
                     

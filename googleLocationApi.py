@@ -36,10 +36,8 @@ def call(filename, start, end):
                 continue
             if location['datetime'] > end:
                 return
-            model = Location(lat=location['latitude'], long=location['longitude'])
-            yield model
             yield LocationHistory(
-                location_id=model.id,
+                location=Location(lat=location['latitude'], long=location['longitude']),
                 timestamp=location['datetime'],
                 velocity=location['velocity'],
                 duration=duration.seconds

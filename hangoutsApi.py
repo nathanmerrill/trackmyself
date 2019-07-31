@@ -48,26 +48,21 @@ def call(filename, start, end):
                 if full_message == '':
                     continue
                 sender = chat['sender_id']['gaia_id']
-                sender_model = Person(
-                    name=participants[sender]
-                )
-                yield sender_model
                 chat_model = ChatHistory(
                     event_id=chat['event_id'],
-                    sender_id=sender_model.id,
+                    sender=Person(
+                        name=participants[sender]
+                    ),
                     message=full_message,
                     timestamp=timestamp,
                 )
-                yield chat_model
                 
                 for reciever, reciever_name in participants.items():
                     if reciever == sender:
                         continue
-                    reciever_model = Person(
-                        name=reciever_name
-                    )
-                    yield reciever_model
                     yield ChatReciept(
-                        chat_id=chat_model.id,
-                        reciever_id=reciever_model.id,
+                        chat=chat_model,
+                        reciever=Person(
+                            name=reciever_name
+                        ),
                     )

@@ -31,9 +31,6 @@ def call(request, start, end):
         for i, entry in enumerate(meal.entries):
             food = Food(name=entry.short_name, unit=entry.unit)
             food_quantity=float(entry.quantity)
-            yield food
             for name, quantity in entry.totals.items():
-                nutrient = Nutrient(name=name)
-                yield nutrient
-                yield FoodNutrient(food_id=food.id, nutrient_id=nutrient.id, quantity=quantity/food_quantity)     
-            yield FoodHistory(timestamp=timestamp, food_id=food.id, meal=meal.name, servings=food_quantity)
+                yield FoodNutrient(food=food, nutrient=Nutrient(name=name), quantity=quantity/food_quantity)     
+            yield FoodHistory(timestamp=timestamp, food=food, meal=meal.name, servings=food_quantity)

@@ -13,8 +13,8 @@ start = end - datetime.timedelta(days=100)
 # 2. Export daylio from phone
 # 3. Download Google location and chat data
 
-data_sources = ['toggl','daylio','googleLocation','rescueTime','myFitnessPal','audio','hangouts','mint']
-
+# data_sources = ['toggl','daylio','googleLocation','rescueTime','myFitnessPal','audio','hangouts','mint']
+data_sources = ['daylio']
 
 tables = []
 for data_source in data_sources:
